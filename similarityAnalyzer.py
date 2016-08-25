@@ -58,8 +58,6 @@ def writeAnalysis(file1, file2):
     p3.join()
     p4.join()
 
-    #debug
-    print "git test"
 
 def writeInfoThread1(fninfo1, fninfo2, result_name):
     with open(result_name+'1.csv', 'wb') as csvfile:
