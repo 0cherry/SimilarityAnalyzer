@@ -1,28 +1,12 @@
 import json
 import csv
 import math
-import sys
 import os.path
-import threading
-import thread
 import multiprocessing as mp
 # import itertools
 from graph import *
 from editdistance import *
 from ngram import *
-
-
-class SyncWriter(threading.Thread):
-    def __init__(self, f1, f2, writer):
-        threading.Thread.__init__(self)
-        self.f1 = f1
-        self.f2 = f2
-        self.writer = writer
-
-    def run(self):
-        self._block.acquire()
-        writeinfo(self.f1, self.f2, self.writer)
-        self._block.release()
 
 def readFile(filePath):
     f = open(filePath, 'r')
@@ -42,85 +26,68 @@ def writeAnalysis(file1, file2):
     print file1 + ' functions : ' + str(len(fninfo1))
     print file2 + ' functions : ' + str(len(fninfo2))
 
-    result_name = 'D:\\SimilarityAnalyzer\\test\\' + os.path.basename(file1) + '+' + os.path.basename(file2) + 'analysis'
+    result_filename = 'D:\\SimilarityAnalyzer\\test\\' + os.path.basename(file1) + '+' + os.path.basename(file2) + 'analysis300'
+    processOfNumber = 10
+    processOfArray = []
 
-    #multiprocessing
-    p1 = mp.Process(target=writeInfoThread1, args=(fninfo1, fninfo2, result_name))
-    p2 = mp.Process(target=writeInfoThread2, args=(fninfo1, fninfo2, result_name))
-    p3 = mp.Process(target=writeInfoThread3, args=(fninfo1, fninfo2, result_name))
-    p4 = mp.Process(target=writeInfoThread4, args=(fninfo1, fninfo2, result_name))
-    p1.start()
-    p2.start()
-    p3.start()
-    p4.start()
-    p1.join()
-    p2.join()
-    p3.join()
-    p4.join()
+    # generate processes
+    for i in range(processOfNumber):
+        end = len(fninfo1)
+        section_start = end*i/processOfNumber
+        section_end = end*(i+1)/processOfNumber
+        distributed_funcion_list = fninfo1[section_start:section_end]
+        if i==processOfNumber:
+            section_end = end
+        processOfArray.append(mp.Process(target=writeinfo, args=(distributed_funcion_list, fninfo2, result_filename+str(i))))
+
+    # start, join processes
+    for process in processOfArray:
+        process.start()
+    for process in processOfArray:
+        process.join()
 
 
-def writeInfoThread1(fninfo1, fninfo2, result_name):
-    with open(result_name+'1.csv', 'wb') as csvfile:
+def writeinfo(fninfo1, fninfo2, result_filename):
+    import time
+    start = time.time()
+    with open(result_filename, 'wb') as csvfile:
         writer = csv.writer(csvfile, delimiter=',')
         writer.writerow(['targetAddr', 'targetName', 'blocks1', 'edges1', 'calls1', 'cmps1', 'sourceAddr', 'sourceName', 'blocks2', 'edges2', 'calls2', 'cmps2', 'cosine', 'graph distance', 'ngram distance'])
-        for f1 in range(0, len(fninfo1)/2):
-            for f2 in range(0, len(fninfo2)/2):
-                writeinfo(fninfo1[f1], fninfo2[f2], writer)
 
-def writeInfoThread2(fninfo1, fninfo2, result_name):
-    with open(result_name+'2.csv', 'wb') as csvfile:
-        writer = csv.writer(csvfile, delimiter=',')
-        writer.writerow(['targetAddr', 'targetName', 'blocks1', 'edges1', 'calls1', 'cmps1', 'sourceAddr', 'sourceName', 'blocks2', 'edges2', 'calls2', 'cmps2', 'cosine', 'graph distance', 'ngram distance'])
-        for f1 in range(len(fninfo1)/2, len(fninfo1)):
-            for f2 in range(0, len(fninfo2)/2):
-                writeinfo(fninfo1[f1], fninfo2[f2], writer)
-
-def writeInfoThread3(fninfo1, fninfo2, result_name):
-    with open(result_name+'3.csv', 'wb') as csvfile:
-        writer = csv.writer(csvfile, delimiter=',')
-        writer.writerow(['targetAddr', 'targetName', 'blocks1', 'edges1', 'calls1', 'cmps1', 'sourceAddr', 'sourceName', 'blocks2', 'edges2', 'calls2', 'cmps2', 'cosine', 'graph distance', 'ngram distance'])
-        for f1 in range(0, len(fninfo1)/2):
-            for f2 in range(len(fninfo2)/2, len(fninfo2)):
-                writeinfo(fninfo1[f1], fninfo2[f2], writer)
-
-def writeInfoThread4(fninfo1, fninfo2, result_name):
-    with open(result_name+'4.csv', 'wb') as csvfile:
-        writer = csv.writer(csvfile, delimiter=',')
-        writer.writerow(['targetAddr', 'targetName', 'blocks1', 'edges1', 'calls1', 'cmps1', 'sourceAddr', 'sourceName', 'blocks2', 'edges2', 'calls2', 'cmps2', 'cosine', 'graph distance', 'ngram distance'])
-        for f1 in range(len(fninfo1)/2, len(fninfo1)):
-            for f2 in range(len(fninfo2)/2, len(fninfo2)):
-                writeinfo(fninfo1[f1], fninfo2[f2], writer)
-
-def writeinfo(f1, f2, writer):
-    info = calculateSimilarity(f1, f2)
-    if info is not None:
-        writer.writerow(info)
-
+        for f1 in fninfo1:
+            for f2 in fninfo2:
+                info = calculateSimilarity(f1, f2)
+                if info is not None:
+                    writer.writerow(info)
+    from os import rename
+    rename(result_filename, result_filename+'.csv')
+    print 'analysis time : %.02f' % (time.time() - start)
 
 def calculateSimilarity(f1, f2):
-    name1, blocks1, edges1, calls1, cmps1, addr1 = f1['name'], f1['blocks'], f1['edges'], f1['calls'], f1['cmps'], f1['addr']
-    name2, blocks2, edges2, calls2, cmps2, addr2 = f2['name'], f2['blocks'], f2['edges'], f2['calls'], f2['cmps'], f2['addr']
-
-    a = cmps1 * cmps2 + blocks1 * blocks2 + calls1 * calls2 + edges1 * edges2
-    b = math.sqrt(cmps1 * cmps1 + blocks1 * blocks1 + calls1 * calls1 + edges1 * edges1)
-    c = math.sqrt(cmps2 * cmps2 + blocks2 * blocks2 + calls2 * calls2 + edges2 * edges2)
-    #cosine similarity + distance
-    consine_simiarity = a/(b*c)*(min(b,c)/max(b,c))
-
-    info = [addr1, name1, blocks1, edges1, calls1, cmps1, addr2, name2, blocks2, edges2, calls2, cmps2, consine_simiarity]
+    info, name1, name2 = getCosineSimilarity(f1, f2)
 
     if name1 == name2 and name1.find("sub") < 0:
         ngram_distance = getNgramDistance(f1, f2, 8)
         info.append(None)
         info.append(ngram_distance)
         return info
-    # elif consine_simiarity > 0.985:
-    #     distance = getGraphDistance(f1, f2)
-    #     info.append(distance)
-    #     ngram_distance = getNgramDistance(f1, f2, 8)
-    #     info.append(ngram_distance)
-    #     return info
+
     return None
+
+
+def getCosineSimilarity(f1, f2):
+    name1, blocks1, edges1, calls1, cmps1, addr1 = f1['name'], f1['blocks'], f1['edges'], f1['calls'], f1['cmps'], f1[
+        'addr']
+    name2, blocks2, edges2, calls2, cmps2, addr2 = f2['name'], f2['blocks'], f2['edges'], f2['calls'], f2['cmps'], f2[
+        'addr']
+    a = cmps1 * cmps2 + blocks1 * blocks2 + calls1 * calls2 + edges1 * edges2
+    b = math.sqrt(cmps1 * cmps1 + blocks1 * blocks1 + calls1 * calls1 + edges1 * edges1)
+    c = math.sqrt(cmps2 * cmps2 + blocks2 * blocks2 + calls2 * calls2 + edges2 * edges2)
+    # cosine similarity + vector size
+    consine_simiarity = a / (b * c) * (min(b, c) / max(b, c))
+    info = [addr1, name1, blocks1, edges1, calls1, cmps1, addr2, name2, blocks2, edges2, calls2, cmps2,
+            consine_simiarity]
+    return info, name1, name2
 
 
 def getGraphDistance(f1, f2):
@@ -139,6 +106,8 @@ def getGraphDistance(f1, f2):
 def getNgramDistance(f1, f2, n):
     mnemonics1, mnemonics2 = f1['mnemonics'], f2['mnemonics']
     length = min(len(mnemonics1), len(mnemonics2))
+    # if a function is large size,
+    if length > 300: length = 300
     mnemonics1, mnemonics2 = f1['mnemonics'][:length], f2['mnemonics'][:length]
     if length < n:
         n = length
@@ -155,7 +124,7 @@ def run():
         writeAnalysis('fninfo\Test.exe_fninfo.json', 'fninfo\Test2.exe_fninfo.json')
     else:
         writeAnalysis(sys.argv[1], sys.argv[2])
-    print 'analysis time : %.02f' % (time.time() - start)
+    print 'execution time : %.02f' % (time.time() - start)
 
 if __name__ == "__main__":
     run()

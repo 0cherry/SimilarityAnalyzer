@@ -44,7 +44,7 @@ def lcs(ngram1, ngram2):
             y -= 1
     return result
 
-
+#Unused
 def lcs_recursion(ngram1, ngram2):
     if not ngram1 or not ngram2:
         return ""
