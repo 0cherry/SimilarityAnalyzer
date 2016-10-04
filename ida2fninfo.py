@@ -37,8 +37,8 @@ def getBlockInfo(bb):
     basic_block['preds'] = preds
     succs = list()
     basic_block['succs'] = succs
-    #mnemonics = getMnemonics(bb)
-    #basic_block['mnemonics'] = mnemonics
+    mnemonics = getMnemonics(bb)
+    basic_block['mnemonics'] = mnemonics
     for pred in bb.preds():
         # fp.write('Pred %08X\n' % pred.startEA)
         preds.append(pred.startEA - base)

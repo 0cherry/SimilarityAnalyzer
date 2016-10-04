@@ -59,13 +59,13 @@ def _build_size_matrix(graph1, graph2):
 
 
 def graph_edit_distance(graph1, graph2):
-    # costMatrix = []
-    # if(graph1.getGraphBlocks() > 5 and graph2.getGraphBlocks() > 5):
-    #     costMatrix = _build_cost_matrix(graph1, graph2)
-    # else:
-    #     costMatrix = _build_size_matrix(graph1, graph2)
-    costMatrix = _build_cost_matrix(graph1, graph2)
-    print costMatrix
+    costMatrix = []
+    if(graph1.getGraphBlocks() > 5 and graph2.getGraphBlocks() > 5):
+        costMatrix = _build_cost_matrix(graph1, graph2)
+    else:
+        costMatrix = _build_size_matrix(graph1, graph2)
+
+    #costMatrix = _build_cost_matrix(graph1, graph2)
     m = Munkres()
     indexes = m.compute(costMatrix)
     editDistance = 0
@@ -102,8 +102,8 @@ def ngramset_edit_distance(set1, set2):
         # total += value
     edit_distance = numpy.mean(max_matrix)
     variance = numpy.var(max_matrix)
-    print 'ngram distance ', edit_distance
-    print 'variance ', variance
+    # print 'ngram distance ', edit_distance
+    # print 'variance ', variance
     # print 'total ', total
     # edit_distance = total/len(indexes)
     return edit_distance, variance

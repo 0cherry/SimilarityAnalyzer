@@ -80,8 +80,3 @@ class node(object):
 
     def __str__(self):
         return 'number : {} addr : {} succsAddr : {} predsAddr : {} succsNode : {} predsNode : {}'.format(self.number, self.addr, self.succsAddr, self.predsAddr, self.succs, self.preds)
-
-
-# with open('C:/vex/Binary/Test.exe_fninfo.json', 'r') as f:
-#     contents = json.loads(f.read())
-#     print contents['functions'][0]['basic_blocks'][0]['succs']
