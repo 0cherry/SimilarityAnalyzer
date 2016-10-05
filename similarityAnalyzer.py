@@ -40,7 +40,6 @@ def filtering(queue, result_filename):
     print "Filtering time", str(time.time() - start)
 
 def isCandidate(f1, f2):
-
     def filterByFunctionName(f1, f2):
         if f1['name'] == f2['name'] and f1['name'].find("sub") < 0:
             return True
