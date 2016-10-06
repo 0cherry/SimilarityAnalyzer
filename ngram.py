@@ -12,7 +12,8 @@ def compare(P, Q, threshold):
 
 def _match(ngram1, ngram2, threshold):
     common = lcs(ngram1, ngram2)
-    common_len = float(len(common))
+    # common_len = float(len(common))
+    common_len = float(common)
     match_score = (common_len*2/(len(ngram1)+len(ngram2)))
     if( match_score > threshold ):
         return True
@@ -29,20 +30,21 @@ def lcs(ngram1, ngram2):
                 lengths[i+1][j+1] = lengths[i][j] + 1
             else:
                 lengths[i+1][j+1] = max(lengths[i+1][j], lengths[i][j+1])
-    # read the substring out from the matrix
-    result = []
-    x, y = len(ngram1), len(ngram2)
-    while x != 0 and y != 0:
-        if lengths[x][y] == lengths[x-1][y]:
-            x -= 1
-        elif lengths[x][y] == lengths[x][y-1]:
-            y -= 1
-        else:
-            assert ngram1[x - 1] == ngram2[y - 1]
-            result.insert(0, ngram1[x - 1])
-            x -= 1
-            y -= 1
-    return result
+    return lengths[len(ngram1)][len(ngram2)]
+    # substring return
+    # result = []
+    # x, y = len(ngram1), len(ngram2)
+    # while x != 0 and y != 0:
+    #     if lengths[x][y] == lengths[x-1][y]:
+    #         x -= 1
+    #     elif lengths[x][y] == lengths[x][y-1]:
+    #         y -= 1
+    #     else:
+    #         assert ngram1[x - 1] == ngram2[y - 1]
+    #         result.insert(0, ngram1[x - 1])
+    #         x -= 1
+    #         y -= 1
+    # return result
 
 #Unused
 def lcs_recursion(ngram1, ngram2):

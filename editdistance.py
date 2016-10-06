@@ -81,7 +81,7 @@ def _ngram_matrix(set1, set2):
     for ngram1 in set1:
         unitMatrix = []
         for ngram2 in set2:
-            ngram_similarity = float(len(lcs(ngram1, ngram2)))/len(ngram1)
+            ngram_similarity = float(lcs(ngram1, ngram2))/len(ngram1)
             if ngram_similarity < 0.7: ngram_similarity=0
             unitMatrix.append(100*ngram_similarity)
         matrix.append(unitMatrix)

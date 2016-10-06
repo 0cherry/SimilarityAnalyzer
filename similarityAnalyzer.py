@@ -16,30 +16,33 @@ def readFile(filePath):
     return contents
 
 queue = mp.Queue()
-def initQueue(fninfo1, fninfo2):
+def initQueue(filepath1, filepath2):
+    fninfo1 = readFile(filepath1)['functions']
+    fninfo2 = readFile(filepath2)['functions']
+
+    # print number of functions
+    print filepath1 + ' functions : ' + str(len(fninfo1))
+    print filepath2 + ' functions : ' + str(len(fninfo2))
     print "#Queue is setting..."
-    print "Flitering function..."
     start = time.time()
     for f1 in fninfo1:
         for f2 in fninfo2:
             if isCandidate(f1, f2):
-                print f1['name'], f2['name']
-                # queue.put([f1, f2])
-    print "Filtering time", str(time.time() - start)
+                queue.put([f1, f2])
+    print "Filtering time :", (time.time()-start)
     print "#Complete. queue size is", queue.qsize()
 
-def filtering(queue, result_filename):
-    print "Flitering function..."
-    start = time.time()
-    while queue.qsize() > 0:
-        f = queue.get()
-        f1, f2 = f[0], f[1]
-        if isCandidate(f1, f2):
-            print f1['name'], f2['name']
-            # queue.put([f1, f2])
-    print "Filtering time", str(time.time() - start)
-
 def isCandidate(f1, f2):
+    def filterByFunctionSize(f1, f2):
+        f1size, f2size = len(f1['mnemonics']), len(f2['mnemonics'])
+        minsize, maxsize = min(f1size, f2size), max(f1size, f2size)
+        standard = minsize * 1.1
+        if minsize < 5 or maxsize < 5:
+            return False
+        if maxsize <= standard:
+            return True
+        return False
+
     def filterByFunctionName(f1, f2):
         if f1['name'] == f2['name'] and f1['name'].find("sub") < 0:
             return True
@@ -51,19 +54,19 @@ def isCandidate(f1, f2):
             return True
         return False
 
+    #Unused
     def filterByMnemonicLCS(f1, f2):
         mnemonics1, mnemonics2 = f1['mnemonics'], f2['mnemonics']
-        n = 300
         maxlen = max(len(mnemonics1), len(mnemonics2))
+        n = maxlen
         if maxlen > n:
             maxlen = n
         if len(mnemonics1) > n:
             mnemonics1 = mnemonics1[0:n]
         if len(mnemonics2) > n:
             mnemonics2 = mnemonics2[0:n]
-        common_mnemonics = lcs(mnemonics1, mnemonics2)
         # LCS/min * min/max
-        bytelcs_similairty = float(len(common_mnemonics))/maxlen
+        bytelcs_similairty = float(lcs(mnemonics1, mnemonics2))/maxlen
         if bytelcs_similairty > 0.7:
             return True
         return False
@@ -73,9 +76,7 @@ def isCandidate(f1, f2):
         pass
 
     #function body
-    start = time.time()
-    selected = filterByFunctionName(f1, f2) or (filterByCosine(f1, f2) and filterByMnemonicLCS(f1, f2))
-    return selected
+    return filterByFunctionName(f1, f2) or (filterByFunctionSize(f1, f2) and filterByCosine(f1, f2))
 
 def analyze(filepath1, filepath2):
     def createProcess(numberOfProcess, func):
@@ -94,14 +95,6 @@ def analyze(filepath1, filepath2):
             process.join()
 
     #function body
-    fninfo1 = readFile(filepath1)['functions']
-    fninfo2 = readFile(filepath2)['functions']
-
-    #print number of functions
-    print filepath1 + ' functions : ' + str(len(fninfo1))
-    print filepath2 + ' functions : ' + str(len(fninfo2))
-
-    initQueue(fninfo1, fninfo2)
     processOfArray = []
     if sys.argv[3] == "1":
         print "#cosine, ngram calculating..."
@@ -112,6 +105,7 @@ def analyze(filepath1, filepath2):
     else:
         print "wrong input argv[3]"
         exit()
+    initQueue(filepath1, filepath2)
     startProcess(processOfArray)
 
 def writeinfo(queue, result_filename):
@@ -123,11 +117,33 @@ def writeinfo(queue, result_filename):
             writer.writerow(tuples)
 
         while queue.qsize() > 0:
-            f = queue.get()
+            # f = queue.get(timeout=1)
+            f = queue.get_nowait()
             f1, f2 = f[0], f[1]
             info = calculateSimilarity(f1, f2)
             if info is not None:
                 writer.writerow(info)
+    os.rename(result_filename, result_filename+'.csv')
+
+def filtering(queue, result_filename):
+    start = time.time()
+    with open(result_filename, 'wb') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',')
+        #tuples = ['srcName', 'srcMumOfMne', 'dstName', 'dstNumOfMne', 'cosine', 'cosineTime', 'graph', 'graphTime', 'ngram', 'ngramTime']
+        if( result_filename[-1] == '0' ):
+            tuples = ['srcName', 'srcAddr', 'srcMumOfMne', 'dstName', 'dstAddr', 'dstNumOfMne', 'cosine', 'cosineTime', 'mLCS', 'mLCSTime']
+            writer.writerow(tuples)
+
+        while queue.qsize() > 0:
+            f = queue.get(timeout=1.5)
+            f1, f2 = f[0], f[1]
+            cosine_similarity = getCosineSimilarity(f1, f2)
+            cosine, cosineTime = cosine_similarity[0], cosine_similarity[1]
+            lcs = getMnemonicLCS(f1, f2)
+            mLCS, mLCSTime = lcs[0], lcs[1]
+            info = [f1['name'], f1['addr'], len(f1['mnemonics']), f2['name'], f2['addr'], len(f2['mnemonics']), cosine, cosineTime, mLCS, mLCSTime]
+            writer.writerow(info)
+    print result_filename, "analysis time :", str(time.time()-start)
     os.rename(result_filename, result_filename+'.csv')
 
 def calculateSimilarity(f1, f2):
@@ -154,6 +170,21 @@ def getCosineSimilarity(f1, f2):
     # cosine similarity + vector size
     cosine_simiarity = a / (b * c) * (min(b, c) / max(b, c))
     return cosine_simiarity, time.time()-start
+
+def getMnemonicLCS(f1, f2):
+    start = time.time()
+    mnemonics1, mnemonics2 = f1['mnemonics'], f2['mnemonics']
+    maxlen = max(len(mnemonics1), len(mnemonics2))
+    # n = maxlen
+    # if maxlen > n:
+    #     maxlen = n
+    # if len(mnemonics1) > n:
+    #     mnemonics1 = mnemonics1[0:n]
+    # if len(mnemonics2) > n:
+    #     mnemonics2 = mnemonics2[0:n]
+    # LCS/min * min/max
+    bytelcs_similairty = float(lcs(mnemonics1, mnemonics2)) / maxlen
+    return bytelcs_similairty, time.time() - start
 
 def getGraphDistance(f1, f2):
     start = time.time()
@@ -190,8 +221,8 @@ def unionOutputCSVfiles(path1, path2):
 def run():
     start = time.time()
     #writeAnalysis('fninfo\A.json', 'fninfo\B.json')
-    if len(sys.argv) != 3:
-        print "needed 2 argments"
+    if len(sys.argv) != 4:
+        print "needed 3 argments"
         exit()
     analyze(sys.argv[1], sys.argv[2])
     unionOutputCSVfiles(sys.argv[1], sys.argv[2])
