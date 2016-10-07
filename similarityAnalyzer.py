@@ -24,12 +24,12 @@ def initQueue(filepath1, filepath2):
     print filepath1 + ' functions : ' + str(len(fninfo1))
     print filepath2 + ' functions : ' + str(len(fninfo2))
     print "#Queue is setting..."
-    start = time.time()
+    start = time.clock()
     for f1 in fninfo1:
         for f2 in fninfo2:
             if isCandidate(f1, f2):
                 queue.put([f1, f2])
-    print "Filtering time :", (time.time()-start)
+    print "Filtering time :", (time.clock()-start)
     print "#Complete. queue size is", queue.qsize()
 
 def isCandidate(f1, f2):
@@ -49,8 +49,8 @@ def isCandidate(f1, f2):
         return False
 
     def filterByCosine(f1, f2):
-        cosine_similarity = getCosineSimilarity(f1, f2)
-        if cosine_similarity > 0.7:
+        cosine_similarity = getCosineSimilarity(f1, f2)[0]
+        if cosine_similarity >= 0.7:
             return True
         return False
 
@@ -76,7 +76,8 @@ def isCandidate(f1, f2):
         pass
 
     #function body
-    return filterByFunctionName(f1, f2) or (filterByFunctionSize(f1, f2) and filterByCosine(f1, f2))
+    selected = filterByFunctionSize(f1, f2) and filterByCosine(f1, f2)
+    return filterByFunctionName(f1, f2) or selected
 
 def analyze(filepath1, filepath2):
     def createProcess(numberOfProcess, func):
@@ -126,7 +127,7 @@ def writeinfo(queue, result_filename):
     os.rename(result_filename, result_filename+'.csv')
 
 def filtering(queue, result_filename):
-    start = time.time()
+    start = time.clock()
     with open(result_filename, 'wb') as csvfile:
         writer = csv.writer(csvfile, delimiter=',')
         #tuples = ['srcName', 'srcMumOfMne', 'dstName', 'dstNumOfMne', 'cosine', 'cosineTime', 'graph', 'graphTime', 'ngram', 'ngramTime']
@@ -143,7 +144,7 @@ def filtering(queue, result_filename):
             mLCS, mLCSTime = lcs[0], lcs[1]
             info = [f1['name'], f1['addr'], len(f1['mnemonics']), f2['name'], f2['addr'], len(f2['mnemonics']), cosine, cosineTime, mLCS, mLCSTime]
             writer.writerow(info)
-    print result_filename, "analysis time :", str(time.time()-start)
+    print result_filename, "analysis time :", str(time.clock()-start)
     os.rename(result_filename, result_filename+'.csv')
 
 def calculateSimilarity(f1, f2):
@@ -161,7 +162,7 @@ def calculateSimilarity(f1, f2):
     return info
 
 def getCosineSimilarity(f1, f2):
-    start = time.time()
+    start = time.clock()
     name1, blocks1, edges1, calls1, cmps1 = f1['name'], f1['blocks'], f1['edges'], f1['calls'], f1['cmps']
     name2, blocks2, edges2, calls2, cmps2 = f2['name'], f2['blocks'], f2['edges'], f2['calls'], f2['cmps']
     a = cmps1 * cmps2 + blocks1 * blocks2 + calls1 * calls2 + edges1 * edges2
@@ -169,10 +170,10 @@ def getCosineSimilarity(f1, f2):
     c = math.sqrt(cmps2 * cmps2 + blocks2 * blocks2 + calls2 * calls2 + edges2 * edges2)
     # cosine similarity + vector size
     cosine_simiarity = a / (b * c) * (min(b, c) / max(b, c))
-    return cosine_simiarity, time.time()-start
+    return cosine_simiarity, time.clock()-start
 
 def getMnemonicLCS(f1, f2):
-    start = time.time()
+    start = time.clock()
     mnemonics1, mnemonics2 = f1['mnemonics'], f2['mnemonics']
     maxlen = max(len(mnemonics1), len(mnemonics2))
     # n = maxlen
@@ -184,17 +185,17 @@ def getMnemonicLCS(f1, f2):
     #     mnemonics2 = mnemonics2[0:n]
     # LCS/min * min/max
     bytelcs_similairty = float(lcs(mnemonics1, mnemonics2)) / maxlen
-    return bytelcs_similairty, time.time() - start
+    return bytelcs_similairty, time.clock() - start
 
 def getGraphDistance(f1, f2):
-    start = time.time()
+    start = time.clock()
     g1, g2 = graph(f1['basic_blocks']), graph(f2['basic_blocks'])
     distance = float(graph_edit_distance(g1, g2))
     graph_similarity = 1-(distance/(g1.getGraphBlocks()+g1.getGraphEdges()+g1.getGraphSize()+g2.getGraphBlocks()+g2.getGraphEdges()+g2.getGraphSize()))
-    return graph_similarity, time.time()-start
+    return graph_similarity, time.clock()-start
 
 def getNgramDistance(f1, f2, n):
-    start = time.time()
+    start = time.clock()
     mnemonics1, mnemonics2 = f1['mnemonics'], f2['mnemonics']
     length = min(len(mnemonics1), len(mnemonics2))
     if length > 150: length = 150
@@ -204,7 +205,7 @@ def getNgramDistance(f1, f2, n):
     ngram1 = ngram(mnemonics1, n)
     ngram2 = ngram(mnemonics2, n)
     ngram_distance, ngram_var = ngramset_edit_distance(ngram1.ngramSet, ngram2.ngramSet)
-    return ngram_distance, ngram_var, time.time()-start
+    return ngram_distance, ngram_var, time.clock()-start
 
 def deleteTemporaryFiles(path1, path2):
     name1, name2 = os.path.basename(path1), os.path.basename(path2)
@@ -219,7 +220,7 @@ def unionOutputCSVfiles(path1, path2):
     os.system(unionCommand)
 
 def run():
-    start = time.time()
+    start = time.clock()
     #writeAnalysis('fninfo\A.json', 'fninfo\B.json')
     if len(sys.argv) != 4:
         print "needed 3 argments"
@@ -227,17 +228,14 @@ def run():
     analyze(sys.argv[1], sys.argv[2])
     unionOutputCSVfiles(sys.argv[1], sys.argv[2])
     deleteTemporaryFiles(sys.argv[1], sys.argv[2])
-    print 'execution time : %.02f' % (time.time() - start)
+    print 'execution time :', (time.clock() - start)
     queue.close()
     queue.join_thread()
 
 def test():
-    analyze('fninfo\\A.json', 'fninfo\\B.json')
-    unionOutputCSVfiles('fninfo\\A.json', 'fninfo\\B.json')
-    deleteTemporaryFiles('fninfo\\A.json', 'fninfo\\B.json')
-    print 'queue size ', queue.qsize()
-    queue.close()
-    queue.join_thread()
+    start = time.clock()
+    for i in range(30000): print i
+    print "execution time :", time.clock()-start
 
 if __name__ == "__main__":
     run()
