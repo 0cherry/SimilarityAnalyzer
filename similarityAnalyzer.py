@@ -43,8 +43,13 @@ def isCandidate(f1, f2):
             return True
         return False
 
+    def filterByExistedFuncionName(f1, f2):
+        if f1['name'].find('sub') < 0 and f2['name'].find('sub') < 0:
+            return True
+        return False
+
     def filterByFunctionName(f1, f2):
-        if f1['name'] == f2['name'] and f1['name'].find("sub") < 0:
+        if f1['name'] == f2['name'] and f1['name'].find('sub') < 0:
             return True
         return False
 
@@ -76,8 +81,9 @@ def isCandidate(f1, f2):
         pass
 
     #function body
-    selected = filterByFunctionSize(f1, f2) and filterByCosine(f1, f2)
-    return filterByFunctionName(f1, f2) or selected
+    # selected = filterByFunctionSize(f1, f2) and filterByCosine(f1, f2)
+    # return filterByFunctionName(f1, f2) or selected
+    return filterByExistedFuncionName(f1, f2)
 
 def analyze(filepath1, filepath2):
     def createProcess(numberOfProcess, func):
@@ -132,7 +138,7 @@ def filtering(queue, result_filename):
         writer = csv.writer(csvfile, delimiter=',')
         #tuples = ['srcName', 'srcMumOfMne', 'dstName', 'dstNumOfMne', 'cosine', 'cosineTime', 'graph', 'graphTime', 'ngram', 'ngramTime']
         if( result_filename[-1] == '0' ):
-            tuples = ['srcName', 'srcAddr', 'srcMumOfMne', 'dstName', 'dstAddr', 'dstNumOfMne', 'cosine', 'cosineTime', 'mLCS', 'mLCSTime']
+            tuples = ['srcName', 'srcAddr', 'srcNumOfMne', 'dstName', 'dstAddr', 'dstNumOfMne', 'cosine', 'cosineTime', 'mLCS', 'mLCSTime']
             writer.writerow(tuples)
 
         while queue.qsize() > 0:
