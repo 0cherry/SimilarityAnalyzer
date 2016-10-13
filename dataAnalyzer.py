@@ -1,5 +1,7 @@
 import pandas
+from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plot
+import numpy
 
 def readFile(filepath):
     # data [srcName, srcAddr, srcNumOfMne, dstName, dstAddr, cosine, cosineTime, mLCS, mLCSTime]
@@ -23,25 +25,46 @@ def getPercentageFalseFromClassifyData(classifiedData):
     false_negative, false_positive = classifiedData[2],classifiedData[3]
     percentageFN = false_negative.srcName.count()/float(total)*100
     percentageFP = false_positive.srcName.count()/float(total)*100
-    return [percentageFP, percentageFN]
+    return percentageFP, percentageFN
 
-def getFalseData(data):
+def getPointData(data):
+    percentageFall = []
     percentageFP = []
-    percentageFN = []
-    cosine_list = [float(i)/20 for i in range(12, 21, 1)]
-    lcs_list = [float(i)/20 for i in range(14, 21, 1)]
+    percentageF = [percentageFall, percentageFP]
+    cosine_list = []
+    lcs_list = []
 
-    for cosine in cosine_list:
+    for i in range(12, 21, 1):
+        cosine = float(i)/20
         for j in range(14, 21, 1):
             lcs = float(j)/20
             classifiedData = classifyData(data, cosine, lcs)
             percentage = getPercentageFalseFromClassifyData(classifiedData)
-            percentageFP.append(percentage[0])
-            percentageFN.append(percentage[1])
-    return cosineLcsPair, percentageFP, percentageFN
 
+            cosine_list.append(cosine)
+            lcs_list.append(lcs)
+            percentageFall.append(percentage[0] + percentage[1])
+            percentageFP.append(percentage[0])
+    return cosine_list, lcs_list, percentageF
+
+def makeGraph(points):
+    x, y = points[0], points[1]
+    z1, z2 = points[2][0], points[2][1]
+
+    print z1
+    print z2
+    print 'minimum false {} cosine {} lcs {}'.format(min(z1), x[z1.index(min(z1))], y[z1.index(min(z1))])
+    print 'minimum false positive {} cosine {} lcs {}'.format(min(z2), x[z2.index(min(z2))], y[z2.index(min(z2))])
+
+    figure = plot.figure()
+    ax = figure.add_subplot(111, projection='3d')
+    ax.scatter(x, y, z1, c='r', marker='o')
+    ax.set_xlabel('cosine')
+    ax.set_ylabel('lcs')
+    ax.set_zlabel('false percentage')
+
+# not used
 def makeLinearGraph(x_data, fp, fn):
-    import numpy
     N = len(x_data)
     index = numpy.arange(N)
     width = 0.35
@@ -85,8 +108,8 @@ def run():
 def test():
     filepath = 'test\\FunctionHavedName.csv'
     data = readFile(filepath)
-    falsePercentage = getFalseData(data)
-    makeLinearGraph(falsePercentage[0], falsePercentage[1], falsePercentage[2])
+    points = getPointData(data)
+    makeGraph(points)
     showGraph()
 
 if __name__ == '__main__':
