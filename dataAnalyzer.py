@@ -2,6 +2,7 @@ import pandas
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plot
 import numpy
+import csv
 
 def readFile(filepath):
     # data [srcName, srcAddr, srcNumOfMne, dstName, dstAddr, cosine, cosineTime, mLCS, mLCSTime]
@@ -10,15 +11,22 @@ def readFile(filepath):
 
 def classifyData(data, cosine, lcs):
     # noFiltered_data = data
+    total = float(data.srcName.count())
     FilteredData = data[(data.cosine >= cosine) & (data.mLCS >= lcs)]
     NotFilteredData = data[((data.cosine < cosine) | (data.mLCS < lcs))]
 
     true_positive = FilteredData[(FilteredData.srcName == FilteredData.dstName)]
-    false_positive = FilteredData[(FilteredData.srcName != FilteredData.dstName)]
-    false_negative = NotFilteredData[(NotFilteredData.srcName == NotFilteredData.dstName)]
+    numOfTP = true_positive.srcName.count()
     true_negative = NotFilteredData[(NotFilteredData.srcName != NotFilteredData.dstName)]
-    result = [true_positive, true_negative, false_negative, false_positive]
-    return result
+    numOfTN = true_negative.srcName.count()
+    false_negative = NotFilteredData[(NotFilteredData.srcName == NotFilteredData.dstName)]
+    numOfFN = false_negative.srcName.count()
+    false_positive = FilteredData[(FilteredData.srcName != FilteredData.dstName)]
+    numOfFP = false_positive.srcName.count()
+    return [numOfTP, numOfTP/total*100, numOfTN, numOfTN/total*100, numOfFN, numOfFN/total*100, numOfFP, numOfFP/total*100]
+
+    # result = [true_positive, true_negative, false_negative, false_positive]
+    # return result
 
 def getPercentageFalseFromClassifyData(classifiedData):
     total = classifiedData[0].srcName.count() + classifiedData[1].srcName.count() + classifiedData[2].srcName.count() + classifiedData[3].srcName.count()
@@ -47,6 +55,19 @@ def getPointData(data):
             percentageFP.append(percentage[0])
     return cosine_list, lcs_list, percentageF
 
+def writeAnalyzedData(data):
+    with open('performance.csv', 'wb') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',')
+        columns = ['cosine', 'lcs', 'numOfTP', 'perOfTP', 'numOfTN', 'perOfTN', 'numOfFN', 'perOfFN', 'numOfFP', 'perOfFP']
+        writer.writerow(columns)
+
+        for i in range(12, 21, 1):
+            cosine = float(i)/20
+            for j in range(14, 21, 1):
+                lcs = float(j)/20
+                cData = classifyData(data, cosine, lcs)
+                writer.writerow([cosine, lcs, cData[0], cData[1], cData[2], cData[3], cData[4], cData[5], cData[6], cData[7]])
+
 def makeGraph(points):
     x, y = points[0], points[1]
     z1, z2 = points[2][0], points[2][1]
@@ -58,10 +79,10 @@ def makeGraph(points):
 
     figure = plot.figure()
     ax = figure.add_subplot(111, projection='3d')
-    ax.scatter(x, y, z1, c='r', marker='o')
+    ax.scatter(x, y, z2, c='r', marker='o')
     ax.set_xlabel('cosine')
     ax.set_ylabel('lcs')
-    ax.set_zlabel('false percentage')
+    ax.set_zlabel('false positive percentage')
 
 # not used
 def makeLinearGraph(x_data, fp, fn):
@@ -108,9 +129,9 @@ def run():
 def test():
     filepath = 'test\\FunctionHavedName.csv'
     data = readFile(filepath)
-    points = getPointData(data)
-    makeGraph(points)
-    showGraph()
+    writeAnalyzedData(data)
+    # makeGraph(points)
+    # showGraph()
 
 if __name__ == '__main__':
     test()

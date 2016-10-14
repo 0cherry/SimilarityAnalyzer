@@ -108,7 +108,7 @@ def analyze(filepath1, filepath2):
         processOfArray = createProcess(8, writeinfo)
     elif sys.argv[3] == "2":
         print "#filtering functions..."
-        processOfArray = createProcess(8, filtering)
+        processOfArray = createProcess(16, filtering)
     else:
         print "wrong input argv[3]"
         exit()
