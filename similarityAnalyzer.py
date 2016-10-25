@@ -4,6 +4,7 @@ import math
 import os
 import multiprocessing as mp
 import time
+import re
 # import itertools
 from graph import *
 from editdistance import *
@@ -32,24 +33,34 @@ def initQueue(filepath1, filepath2):
     print "Filtering time :", (time.clock()-start)
     print "#Complete. queue size is", queue.qsize()
 
+def getCountFunctionHasName(fninfo1, fninfo2):
+    pattern = re.compile('sub_[A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9]')
+    num1, num2 = 0, 0
+    for f1 in fninfo1:
+        if pattern.match(f1['name']) or len(f1['mnemonics']) < 51:
+            continue
+        num1 = num1 + 1
+    for f2 in fninfo2:
+        if pattern.match(f2['name']) or len(f2['mnemonics']) < 51:
+            continue
+        num2 = num2 + 1
+    print num1, num2
+
 def isCandidate(f1, f2):
     def filterByFunctionSize(f1, f2):
         f1size, f2size = len(f1['mnemonics']), len(f2['mnemonics'])
-        minsize, maxsize = min(f1size, f2size), max(f1size, f2size)
-        standard = minsize * 1.1
-        if minsize < 5 or maxsize < 5:
-            return False
-        if maxsize <= standard:
+        if 50 < f1size < 100 and 50 < f2size < 100:
             return True
         return False
 
     def filterByExistedFuncionName(f1, f2):
-        if f1['name'].find('sub') < 0 and f2['name'].find('sub') < 0:
-            return True
-        return False
+        pattern = re.compile('sub_[A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9][A-Z0-9]')
+        if pattern.match(f1['name']) or pattern.match(f2['name']):
+            return False
+        return True
 
     def filterByFunctionName(f1, f2):
-        if f1['name'] == f2['name'] and f1['name'].find('sub') < 0:
+        if f1['name'] == f2['name']:
             return True
         return False
 
@@ -81,9 +92,7 @@ def isCandidate(f1, f2):
         pass
 
     #function body
-    # selected = filterByFunctionSize(f1, f2) and filterByCosine(f1, f2)
-    # return filterByFunctionName(f1, f2) or selected
-    return filterByExistedFuncionName(f1, f2)
+    return filterByExistedFuncionName(f1, f2) and filterByFunctionSize(f1, f2) #and filterByFunctionName(f1, f2)
 
 def analyze(filepath1, filepath2):
     def createProcess(numberOfProcess, func):
@@ -108,7 +117,7 @@ def analyze(filepath1, filepath2):
         processOfArray = createProcess(8, writeinfo)
     elif sys.argv[3] == "2":
         print "#filtering functions..."
-        processOfArray = createProcess(16, filtering)
+        processOfArray = createProcess(8, filtering)
     else:
         print "wrong input argv[3]"
         exit()
@@ -120,12 +129,11 @@ def writeinfo(queue, result_filename):
         writer = csv.writer(csvfile, delimiter=',')
         #tuples = ['srcName', 'srcMumOfMne', 'dstName', 'dstNumOfMne', 'cosine', 'cosineTime', 'graph', 'graphTime', 'ngram', 'ngramTime']
         if( result_filename[-1] == '0' ):
-            tuples = ['srcName', 'srcMumOfMne', 'dstName', 'dstNumOfMne', 'cosine', 'cosineTime', 'ngram', 'ngram_var', 'ngramTime']
+            tuples = ['srcName', 'srcMumOfMne', 'dstName', 'dstNumOfMne', 'cosine', 'cosineTime', 'ngram', 'ngram_var', 'ngram_indexes', 'ngramTime']
             writer.writerow(tuples)
 
         while queue.qsize() > 0:
-            # f = queue.get(timeout=1)
-            f = queue.get_nowait()
+            f = queue.get(timeout=1.5)
             f1, f2 = f[0], f[1]
             info = calculateSimilarity(f1, f2)
             if info is not None:
@@ -157,13 +165,14 @@ def calculateSimilarity(f1, f2):
     info = [f1['name'], len(f1['mnemonics']), f2['name'], len(f2['mnemonics'])]
     cosineSimilarity, cosineTime = getCosineSimilarity(f1, f2)
     # graph_distance, graphTime = getGraphDistance(f1, f2)
-    ngram_distance, ngram_var, ngramTime = getNgramDistance(f1, f2, 8)
+    ngram_distance, ngram_var, ngram_indexes, ngramTime = getNgramDistance(f1, f2, 8)
     info.append(cosineSimilarity)
     info.append(cosineTime)
     # info.append(graph_distance)
     # info.append(graphTime)
     info.append(ngram_distance)
     info.append(ngram_var)
+    info.append(ngram_indexes)
     info.append(ngramTime)
     return info
 
@@ -204,14 +213,14 @@ def getNgramDistance(f1, f2, n):
     start = time.clock()
     mnemonics1, mnemonics2 = f1['mnemonics'], f2['mnemonics']
     length = min(len(mnemonics1), len(mnemonics2))
-    if length > 150: length = 150
+    #if length > 150: length = 150
     mnemonics1, mnemonics2 = f1['mnemonics'][:length], f2['mnemonics'][:length]
     if length < n:
         n = length
     ngram1 = ngram(mnemonics1, n)
     ngram2 = ngram(mnemonics2, n)
-    ngram_distance, ngram_var = ngramset_edit_distance(ngram1.ngramSet, ngram2.ngramSet)
-    return ngram_distance, ngram_var, time.clock()-start
+    ngram_distance, ngram_var, ngram_index = ngramset_edit_distance(ngram1.ngramSet, ngram2.ngramSet)
+    return ngram_distance, ngram_var, ngram_index, time.clock()-start
 
 def deleteTemporaryFiles(path1, path2):
     name1, name2 = os.path.basename(path1), os.path.basename(path2)

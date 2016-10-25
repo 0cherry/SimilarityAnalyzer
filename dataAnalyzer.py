@@ -17,13 +17,21 @@ def classifyData(data, cosine, lcs):
 
     true_positive = FilteredData[(FilteredData.srcName == FilteredData.dstName)]
     numOfTP = true_positive.srcName.count()
+    perOfTP = numOfTP/total*100
     true_negative = NotFilteredData[(NotFilteredData.srcName != NotFilteredData.dstName)]
     numOfTN = true_negative.srcName.count()
+    perOfTN = numOfTN/total*100
     false_negative = NotFilteredData[(NotFilteredData.srcName == NotFilteredData.dstName)]
     numOfFN = false_negative.srcName.count()
+    perOfFN = numOfFN/total*100
     false_positive = FilteredData[(FilteredData.srcName != FilteredData.dstName)]
     numOfFP = false_positive.srcName.count()
-    return [numOfTP, numOfTP/total*100, numOfTN, numOfTN/total*100, numOfFN, numOfFN/total*100, numOfFP, numOfFP/total*100]
+    perOfFP = numOfFP/total*100
+    # true_positive.to_csv('test\\performance\\true_positive cosine' + str(cosine) + ' lcs ' + str(lcs) + '.csv')
+    # true_negative.to_csv('true_negative cosine' + str(cosine) + ' lcs ' + str(lcs) + '.csv')
+    # false_negative.to_csv('test\\performance\\false_negative cosine' + str(cosine) + ' lcs ' + str(lcs) + '.csv')
+    # false_positive.to_csv('test\\performance\\false_positive cosine' + str(cosine) + ' lcs ' + str(lcs) + '.csv')
+    return [numOfTP, perOfTP, numOfTN, perOfTN, numOfFN, perOfFN, numOfFP, perOfFP, numOfFN+numOfFP, perOfFN + perOfFP, float(numOfTP)/(numOfTP+numOfFP), float(numOfTP)/(numOfTP+numOfFN)]
 
     # result = [true_positive, true_negative, false_negative, false_positive]
     # return result
@@ -56,17 +64,17 @@ def getPointData(data):
     return cosine_list, lcs_list, percentageF
 
 def writeAnalyzedData(data):
-    with open('performance.csv', 'wb') as csvfile:
+    with open('test\\performance\\performance.csv', 'wb') as csvfile:
         writer = csv.writer(csvfile, delimiter=',')
-        columns = ['cosine', 'lcs', 'numOfTP', 'perOfTP', 'numOfTN', 'perOfTN', 'numOfFN', 'perOfFN', 'numOfFP', 'perOfFP']
+        columns = ['cosine', 'lcs', 'numOfTP', 'perOfTP', 'numOfTN', 'perOfTN', 'numOfFN', 'perOfFN', 'numOfFP', 'perOfFP', 'numOfF', 'perOfF', 'precision', 'recall']
         writer.writerow(columns)
 
-        for i in range(12, 21, 1):
+        for i in range(14, 21, 1):
             cosine = float(i)/20
             for j in range(14, 21, 1):
                 lcs = float(j)/20
                 cData = classifyData(data, cosine, lcs)
-                writer.writerow([cosine, lcs, cData[0], cData[1], cData[2], cData[3], cData[4], cData[5], cData[6], cData[7]])
+                writer.writerow([cosine, lcs, cData[0], cData[1], cData[2], cData[3], cData[4], cData[5], cData[6], cData[7], cData[8], cData[9], cData[10], cData[11]])
 
 def makeGraph(points):
     x, y = points[0], points[1]
@@ -127,11 +135,10 @@ def run():
     showGraph()
 
 def test():
-    filepath = 'test\\FunctionHavedName.csv'
+    filepath = 'test\\1.0.1f+1.0.2h_report proc8 871sec size50.csv'
     data = readFile(filepath)
+    # classifyData(data, 1.0, 1.0)
     writeAnalyzedData(data)
-    # makeGraph(points)
-    # showGraph()
 
 if __name__ == '__main__':
     test()
