@@ -49,7 +49,7 @@ def getCountFunctionHasName(fninfo1, fninfo2):
 def isCandidate(f1, f2):
     def filterByFunctionSize(f1, f2):
         f1size, f2size = len(f1['mnemonics']), len(f2['mnemonics'])
-        if 50 < f1size < 100 and 50 < f2size < 100:
+        if 10 < f1size < 150 and 10 < f2size < 150:
             return True
         return False
 
@@ -92,7 +92,7 @@ def isCandidate(f1, f2):
         pass
 
     #function body
-    return filterByExistedFuncionName(f1, f2) and filterByFunctionSize(f1, f2) #and filterByFunctionName(f1, f2)
+    return filterByExistedFuncionName(f1, f2) and filterByFunctionName(f1, f2) and filterByFunctionSize(f1, f2)
 
 def analyze(filepath1, filepath2):
     def createProcess(numberOfProcess, func):
@@ -129,7 +129,7 @@ def writeinfo(queue, result_filename):
         writer = csv.writer(csvfile, delimiter=',')
         #tuples = ['srcName', 'srcMumOfMne', 'dstName', 'dstNumOfMne', 'cosine', 'cosineTime', 'graph', 'graphTime', 'ngram', 'ngramTime']
         if( result_filename[-1] == '0' ):
-            tuples = ['srcName', 'srcMumOfMne', 'dstName', 'dstNumOfMne', 'cosine', 'cosineTime', 'ngram', 'ngram_var', 'ngram_indexes', 'ngramTime']
+            tuples = ['srcName', 'srcMumOfMne', 'dstName', 'dstNumOfMne', 'cosine', 'cosineTime', 'ngram', 'ngram_var', 'sim2', 'sim3', 'ngramTime']
             writer.writerow(tuples)
 
         while queue.qsize() > 0:
@@ -165,15 +165,17 @@ def calculateSimilarity(f1, f2):
     info = [f1['name'], len(f1['mnemonics']), f2['name'], len(f2['mnemonics'])]
     cosineSimilarity, cosineTime = getCosineSimilarity(f1, f2)
     # graph_distance, graphTime = getGraphDistance(f1, f2)
-    ngram_distance, ngram_var, ngram_indexes, ngramTime = getNgramDistance(f1, f2, 8)
+    ngram_distance, ngram_var, sim2, sim3, ngram_time, indexes = getNgramDistance(f1, f2, 8)
     info.append(cosineSimilarity)
     info.append(cosineTime)
     # info.append(graph_distance)
     # info.append(graphTime)
     info.append(ngram_distance)
     info.append(ngram_var)
-    info.append(ngram_indexes)
-    info.append(ngramTime)
+    info.append(sim2)
+    info.append(sim3)
+    info.append(ngram_time)
+    info.append(indexes)
     return info
 
 def getCosineSimilarity(f1, f2):
@@ -219,8 +221,8 @@ def getNgramDistance(f1, f2, n):
         n = length
     ngram1 = ngram(mnemonics1, n)
     ngram2 = ngram(mnemonics2, n)
-    ngram_distance, ngram_var, ngram_index = ngramset_edit_distance(ngram1.ngramSet, ngram2.ngramSet)
-    return ngram_distance, ngram_var, ngram_index, time.clock()-start
+    ngram_distance, ngram_var, sim2, sim3, indexes = ngramset_edit_distance(ngram1.ngramSet, ngram2.ngramSet)
+    return ngram_distance, ngram_var, sim2, sim3, indexes, time.clock()-start
 
 def deleteTemporaryFiles(path1, path2):
     name1, name2 = os.path.basename(path1), os.path.basename(path2)

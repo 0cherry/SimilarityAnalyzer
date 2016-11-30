@@ -32,7 +32,6 @@ def classifyData(data, cosine, lcs):
     # false_negative.to_csv('test\\performance\\false_negative cosine' + str(cosine) + ' lcs ' + str(lcs) + '.csv')
     # false_positive.to_csv('test\\performance\\false_positive cosine' + str(cosine) + ' lcs ' + str(lcs) + '.csv')
     return [numOfTP, perOfTP, numOfTN, perOfTN, numOfFN, perOfFN, numOfFP, perOfFP, numOfFN+numOfFP, perOfFN + perOfFP, float(numOfTP)/(numOfTP+numOfFP), float(numOfTP)/(numOfTP+numOfFN)]
-
     # result = [true_positive, true_negative, false_negative, false_positive]
     # return result
 
@@ -140,12 +139,15 @@ def test():
     # classifyData(data, 1.0, 1.0)
     writeAnalyzedData(data)
 
-if __name__ == '__main__':
-    test()
-# filtered_data.cosine.hist()
-# filtered_data.plot.pie()
+def data_analyze():
+    filepath = 'test\\zlib123.dll_fninfo.json+zlib128.dll_fninfo.json_report.csv'
+    data = readFile(filepath)
 
-# notfiltered_data.to_csv('test\\notfiltered data.csv', index=False)
-# filtered_data.to_csv('test\\filtered data.csv', index=False)
-# sameNameFunction_data.to_csv('test\\same name function data.csv', index=False)
-# sameFunction_data.to_csv('test\\same function data.csv', index=False)
+    for i in range(data.srcName.count()):
+        function_size = len(data['xygraph_distance'][i])
+        n = 3 # can be modified
+        for j in range(function_size-1):
+            print
+
+if __name__ == '__main__':
+    data_analyze()
