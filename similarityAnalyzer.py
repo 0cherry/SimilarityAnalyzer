@@ -49,7 +49,7 @@ def getCountFunctionHasName(fninfo1, fninfo2):
 def isCandidate(f1, f2):
     def filterByFunctionSize(f1, f2):
         f1size, f2size = len(f1['mnemonics']), len(f2['mnemonics'])
-        if 10 < f1size < 150 and 10 < f2size < 150:
+        if 50 < f1size < 500 and 50 < f2size < 500:
             return True
         return False
 
@@ -66,7 +66,7 @@ def isCandidate(f1, f2):
 
     def filterByCosine(f1, f2):
         cosine_similarity = getCosineSimilarity(f1, f2)[0]
-        if cosine_similarity >= 0.7:
+        if cosine_similarity >= 0.9:
             return True
         return False
 
@@ -92,7 +92,7 @@ def isCandidate(f1, f2):
         pass
 
     #function body
-    return filterByExistedFuncionName(f1, f2) and filterByFunctionName(f1, f2) and filterByFunctionSize(f1, f2)
+    return filterByExistedFuncionName(f1, f2) and filterByFunctionSize(f1, f2) #and filterByFunctionName(f1, f2)
 
 def analyze(filepath1, filepath2):
     def createProcess(numberOfProcess, func):
@@ -116,7 +116,7 @@ def analyze(filepath1, filepath2):
         print "#cosine, ngram calculating..."
         processOfArray = createProcess(8, writeinfo)
     elif sys.argv[3] == "2":
-        print "#filtering functions..."
+        print "#cosine, lcs calculating..."
         processOfArray = createProcess(8, filtering)
     else:
         print "wrong input argv[3]"

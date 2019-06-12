@@ -5,11 +5,41 @@ import numpy
 import csv
 
 def readFile(filepath):
-    # data [srcName, srcAddr, srcNumOfMne, dstName, dstAddr, cosine, cosineTime, mLCS, mLCSTime]
+    # data [srcName, srcNumOfMne, dstName, dstNumOfMne, cosine, mLCS, ngram, slope1, continuous_slope2, continuous_slope3]
     data = pandas.read_csv(filepath)
     return data
 
-def classifyData(data, cosine, lcs):
+#features = cosine, ngram, sim2, sim3
+def classifyData(data, *features):
+    # noFiltered_data = data
+    total = float(data.srcName.count())
+    # FilteredData = data[(data.cosine >= features[0]) & (data.ngram >= features[1]) & (data.sim2 >= features[2]) & (data.sim3 >= features[3])]
+    # NotFilteredData = data[(data.cosine < features[0]) | (data.ngram >= features[1]) | (data.sim2 < features[2]) | (data.sim3 < features[3])]
+    FilteredData = data[(data.cosine >= features[0]) & (data.mLCS >= features[1])]
+    NotFilteredData = data[(data.cosine < features[0]) | (data.mLCS < features[1])]
+
+    true_positive = FilteredData[(FilteredData.srcName == FilteredData.dstName)]
+    numOfTP = true_positive.srcName.count()
+    perOfTP = numOfTP/total*100
+    true_negative = NotFilteredData[(NotFilteredData.srcName != NotFilteredData.dstName)]
+    numOfTN = true_negative.srcName.count()
+    perOfTN = numOfTN/total*100
+    false_negative = NotFilteredData[(NotFilteredData.srcName == NotFilteredData.dstName)]
+    numOfFN = false_negative.srcName.count()
+    perOfFN = numOfFN/total*100
+    false_positive = FilteredData[(FilteredData.srcName != FilteredData.dstName)]
+    numOfFP = false_positive.srcName.count()
+    perOfFP = numOfFP/total*100
+    # true_positive.to_csv('test\\performance\\true_positive cosine' + str(cosine) + ' lcs ' + str(lcs) + '.csv')
+    # true_negative.to_csv('true_negative cosine' + str(cosine) + ' lcs ' + str(lcs) + '.csv')
+    # false_negative.to_csv('test\\performance\\false_negative cosine' + str(features[0]) + ' ngram ' + str(features[1]) + '.csv')
+    # false_positive.to_csv('test\\performance\\false_positive cosine' + str(cosine) + ' lcs ' + str(lcs) + '.csv')
+    print numOfTP, numOfTN, numOfFN, numOfFP
+    return [numOfTP, perOfTP, numOfTN, perOfTN, numOfFN, perOfFN, numOfFP, perOfFP, numOfFN+numOfFP, perOfFN + perOfFP, float(numOfTP)/(numOfTP+numOfFP), float(numOfTP)/(numOfTP+numOfFN)]
+    # result = [true_positive, true_negative, false_negative, false_positive]
+    # return result
+
+def classifyData2(data, cosine, lcs):
     # noFiltered_data = data
     total = float(data.srcName.count())
     FilteredData = data[(data.cosine >= cosine) & (data.mLCS >= lcs)]
@@ -65,15 +95,19 @@ def getPointData(data):
 def writeAnalyzedData(data):
     with open('test\\performance\\performance.csv', 'wb') as csvfile:
         writer = csv.writer(csvfile, delimiter=',')
-        columns = ['cosine', 'lcs', 'numOfTP', 'perOfTP', 'numOfTN', 'perOfTN', 'numOfFN', 'perOfFN', 'numOfFP', 'perOfFP', 'numOfF', 'perOfF', 'precision', 'recall']
+        columns = ['cosine', 'ngram', 'sim2', 'sim3', 'numOfTP', 'perOfTP', 'numOfTN', 'perOfTN', 'numOfFN', 'perOfFN', 'numOfFP', 'perOfFP', 'numOfF', 'perOfF', 'precision', 'recall']
         writer.writerow(columns)
 
         for i in range(14, 21, 1):
-            cosine = float(i)/20
             for j in range(14, 21, 1):
-                lcs = float(j)/20
-                cData = classifyData(data, cosine, lcs)
-                writer.writerow([cosine, lcs, cData[0], cData[1], cData[2], cData[3], cData[4], cData[5], cData[6], cData[7], cData[8], cData[9], cData[10], cData[11]])
+                filter1 = float(i) / 20
+                filter2 = float(j) / 20
+                # filter3 = float(k)/20
+                # filter4 = float(l)/20
+                cData = classifyData(data, filter1, filter2)
+                writer.writerow([filter1, filter2, None, None, cData[0], cData[1], cData[2], cData[3], cData[4], cData[5], cData[6], cData[7], cData[8], cData[9], cData[10], cData[11]])
+                # for k in range(10, 21, 1):
+                    # for l in range(14, 21, 1):
 
 def makeGraph(points):
     x, y = points[0], points[1]
@@ -134,7 +168,7 @@ def run():
     showGraph()
 
 def test():
-    filepath = 'test\\1.0.1f+1.0.2h_report proc8 871sec size50.csv'
+    filepath = 'test\\161228 report\\libeay32_lcs_size50-500_591360couples_1416secs_report.csv'
     data = readFile(filepath)
     # classifyData(data, 1.0, 1.0)
     writeAnalyzedData(data)
@@ -150,4 +184,4 @@ def data_analyze():
             print
 
 if __name__ == '__main__':
-    data_analyze()
+    test()
